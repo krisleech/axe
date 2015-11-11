@@ -1,0 +1,15 @@
+trap exceptions in handlers
+pool of consumers
+supervisor for consumers which will restart them.
+exception handler
+stress test
+store offset after message sent to handler
+allow to surround handler + offset update in a configurable block,
+this allows user to surround both in a transaction (around_filter).
+
+configurable offset updater, in app config and per consumer.
+
+  # actor crashes if the topic does not already exist.
+  # rescue Poseidon error or restart
+
+spawn timer to report current offsets every X seconds.

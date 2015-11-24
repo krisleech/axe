@@ -1,6 +1,8 @@
+require 'pry'
 require 'poseidon'
-require 'celluloid'
 require 'pstore'
+
+require 'celluloid/current'
 
 module Axe
 
@@ -10,10 +12,12 @@ module Axe
   # offset is actually next_offset, rename
   class Consumer
     include Celluloid
-    include Celluloid::Logger
+    include Celluloid::Internals::Logger
 
     attr_reader :id, :topic, :handler, :pool_size, :offset,
                 :max_batch_size, :status
+
+    exclusive
 
     def initialize(options)
       @id = options.fetch(:id)
@@ -29,8 +33,6 @@ module Axe
     end
 
     def call
-      return if running?
-
       @status = :running
 
       log("[CON##{id}] Running")
@@ -176,17 +178,25 @@ module Axe
 
         break unless running?
 
+        log.info "Actors up: #{Celluloid::Actor.all.size}"
+        log.info "Actors up: #{Celluloid::Actor.all.inspect}"
         log.info "sleeping for #{delay} seconds"
 
         sleep(delay)
       end
 
+      # this will not work as it will wait in the mailbox...?
+      # all #terminate on each actor
       consumer.each(&:stop)
 
+      # will this block too, what about mailbox.size == 0
       while consumer.any?(&:running?) do
         log.info "Waiting for consumers to finish"
         sleep(1)
       end
+
+      # proberbly we need to do a graceful shutdown in the trap, where it waits
+      # until all mailboxes are zero. or app.stopped? == true
 
       log.info 'app stopped'
     end

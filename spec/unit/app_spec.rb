@@ -7,7 +7,8 @@ module Axe
         handler = Object.new
         topic = 'a_topic'
 
-        app.register(handler: handler,
+        app.register(id: 'test_id',
+                     handler: handler,
                      topic: topic)
 
         consumer = app.consumers.first
@@ -19,11 +20,6 @@ module Axe
 
     describe '#start' do
       it 'creates a process per handler'
-
-      it 'maps Kafka messages to handler by topic' do
-        app = described_class.new
-        # app.register
-      end
     end
   end
 end

@@ -25,3 +25,8 @@ end
 def publish_event(options)
   test_producer.publish(options)
 end
+
+RSpec.configure do |config|
+  config.filter_run focus: true
+  config.run_all_when_everything_filtered = true
+end

@@ -5,13 +5,23 @@ Bundler.setup
 require 'poseidon'
 require 'pry'
 
-producer = Poseidon::Producer.new(["localhost:9092"], "some_id")
+producer = Poseidon::Producer.new(["localhost:9092"], "stress_test")
 
-loop do
-  topic = %w(test system).sample
-  value = %w(apple pear orange).sample
+srand
 
-  messages = []
-  messages << Poseidon::MessageToSend.new(topic, "{ name: '#{value}' }")
-  producer.send_messages(messages)
+topics = %w(test test2)
+values = %w(apple pear orange)
+
+threads = 10.times.map do
+  Thread.new do
+    150.times do
+      topic = topics.sample
+      puts topic
+      messages = 10.times.map { Poseidon::MessageToSend.new(topic, "{ name: '#{values.sample}' }") }
+      producer.send_messages(messages)
+      sleep(rand(0.5))
+    end
+  end
 end
+
+threads.each(&:join)

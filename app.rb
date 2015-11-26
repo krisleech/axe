@@ -5,6 +5,7 @@ Bundler.setup
 require 'axe'
 require 'pry'
 
+
 # event handlers must implement #call(payload)
 class TestHandler
   def call(payload)
@@ -21,14 +22,15 @@ end
 
 app = Axe::App.new
 
-# Thread needed because of https://bugs.ruby-lang.org/issues/7917
-%w(INT TERM QUIT).each do |signal|
-  Signal.trap(signal) { Thread.new { app.stop } }
-end
 
-Signal.trap('USR1') do
-  puts "#{app.status}"
-end
+# Thread needed because of https://bugs.ruby-lang.org/issues/7917
+# %w(INT TERM QUIT).each do |signal|
+#   Signal.trap(signal) { Thread.new { app.stop } }
+# end
+#
+# Signal.trap('USR1') do
+#   puts "#{app.status}"
+# end
 
 app.register(id: 'kris',
             topic: 'test',

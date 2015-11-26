@@ -1,3 +1,9 @@
+Poseidon::Errors::UnknownTopicOrPartition can occur if the topic does not exist
+or the topic is correct but it has not been auto-created because no messages
+have been published to the topic yet.
+
+
+
 trap exceptions in handlers
 pool of consumers
 supervisor for consumers which will restart them.

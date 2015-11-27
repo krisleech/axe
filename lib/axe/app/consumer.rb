@@ -15,6 +15,8 @@ module Axe
       # initialize a new consumer
       #
       def initialize(options)
+        @offset_store      = options.fetch(:offset_store, nil)
+        @exception_handler = options.fetch(:exception_handler)
         @id      = options.fetch(:id)
         @handler = options.fetch(:handler)
         @topic   = options.fetch(:topic)
@@ -22,7 +24,6 @@ module Axe
         @logger  = options.fetch(:logger)
         @delay   = options.fetch(:delay, 0.5)
         @offset  = options.fetch(:offset, next_offset)
-        @exception_handler = options.fetch(:exception_handler)
         @status  = Stopped
       end
 

@@ -1,15 +1,25 @@
 
 how can one handler get multiple topics. Instance per topic sharing a local database?
 
+Arvo parsing of message
+
 Persistant storage for offsets - MySQL
 
 Ability to configure a block to wrap handler.call and store_offset (allowing them to  be
 in a transaction).
 
-Arvo parsing of message
+handle Poseidon::Errors::OffsetOutOfRange when fetching messages
+
 
 consumer include which gives them local state
 consumer include which gives them access to publish events to Kafka
+
+
+How to reset offset for a consumer?
+- split app.rb in to env.rb and start.rb so you can load the app without starting and thus
+get access to the consumers via Irb. Also need to have a Consumers collection class:
+
+app.consumers['an_id'].offset = 0
 
 
 Poseidon::Errors::UnknownTopicOrPartition can occur if the topic does not exist

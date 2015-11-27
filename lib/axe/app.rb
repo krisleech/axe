@@ -1,8 +1,9 @@
 require_relative 'app/consumer'
+require_relative 'app/file_offset_store'
 
 module Axe
   class App
-    attr_reader :env, :logger, :exception_handler
+    attr_reader :env, :logger, :exception_handler, :offset_store
 
     Stopped = 'stopped'.freeze
     Started = 'started'.freeze
@@ -12,6 +13,7 @@ module Axe
       @env    = options.fetch(:env, 'production')
       @logger = options.fetch(:logger, nil)
       @exception_handler = options.fetch(:exception_handler, default_exception_handler)
+      @offset_store      = options.fetch(:offset_store, nil)
       @status = Stopped
 
       @consumers = []
@@ -23,7 +25,8 @@ module Axe
                                  topic:   options.fetch(:topic),
                                  env:     env,
                                  logger:  logger,
-                                 exception_handler: exception_handler)
+                                 exception_handler: exception_handler,
+                                 offset_store:      offset_store)
 
       self
     end

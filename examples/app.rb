@@ -9,35 +9,49 @@ require 'pry'
 # event handlers must implement #call(payload)
 class TestHandler
   def call(payload)
-    puts "[TEST] #{Time.now.strftime('%M %S %L %N')} #{payload}"
+    puts "[TEST] #{payload}"
     sleep(5) # this will not hold up other handlers
   end
 end
 
 class SystemHandler
   def call(payload)
-    puts "[SYS] #{Time.now.strftime('%M %S %L %N')} #{payload}"
+    puts "[SYS] #{payload}"
   end
 end
 
 class OtherHandler
   def call(payload)
-    puts "[OTH] #{Time.now.strftime('%M %S %L %N')} #{payload}"
+    puts "[OTH] #{payload}"
     raise 'some error'# if rand(2) == 1
   end
 end
 
 class MultiHandler
   def call(payload)
-    puts "[MULTI] #{Time.now.strftime('%M %S %L %N')} #{payload}"
+    puts "[MULTI] #{payload}"
   end
 end
 
+AppRoot = Pathname(__dir__)
+
+puts AppRoot.to_s
+
+# create directories
+%w(log db).each do |dir|
+  dir = AppRoot.join(dir).to_s
+  next if Dir.exists?(dir)
+  puts "Creating #{dir}"
+  Dir.mkdir(dir)
+end
+
 require 'logger'
-logger = Logger.new('axe.log')
+logger = Logger.new(AppRoot.join('log', 'axe.log').to_s)
 
-app = Axe::App.new(logger: logger)
+app = Axe::App.new(logger: logger,
+                   offset_store: Axe::App::FileOffsetStore.new(path: AppRoot.join('db')))
 
+# Graceful shutdown
 # Thread needed because of https://bugs.ruby-lang.org/issues/7917
 %w(INT TERM QUIT).each do |signal|
   Signal.trap(signal) { Thread.new { app.stop } }

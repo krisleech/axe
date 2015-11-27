@@ -1,4 +1,6 @@
 
+how can one handler get multiple topics. Instance per topic sharing a local database?
+
 Persistant storage for offsets - MySQL
 
 Ability to configure a block to wrap handler.call and store_offset (allowing them to  be

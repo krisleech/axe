@@ -12,6 +12,8 @@ module Axe
       Started  = :started
       Stopping = :stopping
 
+      # initialize a new consumer
+      #
       def initialize(options)
         @id      = options.fetch(:id)
         @handler = options.fetch(:handler)
@@ -24,16 +26,15 @@ module Axe
         @status  = Stopped
       end
 
+      # starts the consumer
+      #
       def start
-        log "Started"
-        @status = Started
+        status(Started)
 
-
-        while !stopping?
+        while started?
           messages = kafka_client.fetch
 
-          log("#{messages.size} messages in batch", :debug)
-          log("offset #{messages.first.offset}..#{messages.last.offset}", :debug) unless messages.empty?
+          log_message_stats(messages)
 
           messages.each do |message|
             @offset = message.offset
@@ -52,7 +53,7 @@ module Axe
             break if stopping?
           end
 
-          break if testing? || stopping?
+          break if stopping? || testing?
 
           log "Sleeping for #{delay} seconds"
           sleep(delay)
@@ -62,26 +63,33 @@ module Axe
         handle_exception(e)
         stop
       ensure
-        @status = Stopped
-        log "Stopped"
+        status(Stopped)
         self
       end
 
+      # Stops the consumer gracefully
+      # The currently processed message will be finished
+      #
       def stop
         return unless started?
-        log "Stopping"
-        @status = Stopping
+        status(Stopping)
         self
       end
 
+      # Returns true when consumer has been started
+      #
       def started?
         @status == Started
       end
 
+      # Returns true when the consumer is in the process of stopping
+      #
       def stopping?
         @status == Stopping
       end
 
+      # Returns true when the consumer is stopped
+      #
       def stopped?
         @status == Stopped
       end
@@ -99,6 +107,11 @@ module Axe
       end
 
       private
+
+      def status(new_status)
+        @status = new_status
+        log @status.to_s.capitalize
+      end
 
       def handle_exception(e)
         exception_handler.call(e, self)
@@ -136,7 +149,12 @@ module Axe
       end
 
       def log(message, level = :info)
-        logger.send(level, "[#{id}] #{message}")
+        logger.send(level, "[#{id}] [#{topic}] #{message}")
+      end
+
+      def log_message_stats(messages)
+        log("#{messages.size} messages in batch", :debug)
+        log("offset #{messages.first.offset}..#{messages.last.offset}", :debug) unless messages.empty?
       end
     end
   end

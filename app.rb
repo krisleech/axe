@@ -27,6 +27,12 @@ class OtherHandler
   end
 end
 
+class MultiHandler
+  def call(payload)
+    puts "[MULTI] #{Time.now.strftime('%M %S %L %N')} #{payload}"
+  end
+end
+
 require 'logger'
 logger = Logger.new('axe.log')
 
@@ -48,6 +54,18 @@ app.register(id: 'kris',
 app.register(id: 'sys',
             topic: 'test2',
             handler: SystemHandler.new)
+
+app.register(id: 'other',
+            topic: 'test2',
+            handler: OtherHandler.new)
+
+app.register(id: 'multi',
+            topic: 'test',
+            handler: MultiHandler.new)
+
+app.register(id: 'multi',
+            topic: 'test2',
+            handler: MultiHandler.new)
 
 app.start
 

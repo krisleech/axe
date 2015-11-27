@@ -8,8 +8,6 @@ A small framework for routing a stream of events to parallelized consumers.
 * consumer publishing new streams
 * stats for each stream and consumer
 
-To get asynchronicity you need Rubinus or JRuby.
-
 ## Setup
 
 Currently Axe has no application template.
@@ -24,40 +22,67 @@ rerun ruby app.rb
 
 (rerun will reload the code when a Ruby file changes)
 
-An example app:
+A minimal app looks like this:
 
 ```ruby
 require 'bundler'
+Bundler.setup
+
 require 'axe'
 
-app = Axe::App.new
+class MyConsumer
+  def call(message)
+    puts message
+  end
+end
 
-app.register(id: "my_consumer",
-             topic: "test",
-             handler: MyConsumer.new,
-             pool: 10,
-             offset: "resume")
+app = Axe::App.new(logger: Logger.new('logs/axe.log'))
 
-app.on(:message_consumed) {  }
-app.on(:message_received) {  }
-app.on(:exception) {  }
+app.register(id:      "my_test_consumer",
+             topic:   "test",
+             handler: MyConsumer.new)
 
 app.start
 ```
 
-Many parts are pluggable, but the default setup is:
+Each Handler is mapped to a topic.
 
-Kafka as steam source
-Offsets stored on disk
+The application will maintain the offset in the topic between restarts.
 
-my_app/data/offsets.db
-           /local_storage.db
+Handlers will receive messages in the correct. This means if an exception
+occurs the handlers will be stopped.
+
+Handlers are all run in parrell in their own processes.
 
 ## Usage
 
+### Configuration
+
+```ruby
+app.configure do |config|
+  config.logger = Logger.new(...)
+  config.exception_handler = lambda { |consumer_id, exception| ... }
+  config.exception_policy = :stop
+  config.transaction_wrapper = lambda { Sequel.transaction { yield } }
+end
+```
+
 ### Registering consumers
 
+```ruby
+app.register(id: "recruitment/study_projection",
+             topic: "recruitment",
+             handler: Recruitment::StudyProjection.new,
+             delay: 5)
+```
 
+* `id` is an identifier, it is what the offsets are keyed on. Therefore
+  changing it will mean the handler will get events from offset 0. Likewise
+  reusing a previously used offset will mean the handler will start from the
+  offset stored for that offset.
+* `topic` is the Kafka topic
+* `handler` an object which responds to `#call(message)`
+* `delay` the number of seconds to pause between batches of messages
 
 ## Development
 

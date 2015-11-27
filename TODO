@@ -1,8 +1,27 @@
+Catch no connection to Kafka error
+
+Add exception handler - it gets handler id and exception. We should add retry with backoff.
+Once backedoff we stop the consumer.
+
+Persistant storage for offsets - MySQL
+
+Ability to configure a block to wrap handler.call and store_offset (allowing them to  be
+in a transaction).
+
+Arvo parsing of message
+
+consumer include which gives them local state
+consumer include which gives them access to publish events to Kafka
+
+
 Poseidon::Errors::UnknownTopicOrPartition can occur if the topic does not exist
 or the topic is correct but it has not been auto-created because no messages
 have been published to the topic yet.
 
 
+
+testing? method in consumer could be replaced with a after_hook which is a block
+instance eval'd. The tests can have the block call stop.
 
 trap exceptions in handlers
 pool of consumers

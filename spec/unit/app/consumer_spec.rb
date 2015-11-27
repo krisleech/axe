@@ -3,13 +3,15 @@ module Axe
     subject(:consumer) { described_class.new(id:      id,
                                              handler: handler,
                                              topic:   topic,
+                                             offset:  offset,
                                              env:     env,
                                              logger:  logger,
                                              delay:   delay)  }
 
     let(:id)      { 'test_id' }
-    let(:handler) { double }
+    let(:handler) { double.as_null_object }
     let(:topic)   { 'test_topic' }
+    let(:offset)  { 0 }
     let(:env)     { 'test' }
     let(:logger)  { double.as_null_object }
     let(:delay)   { 0 }
@@ -36,6 +38,45 @@ module Axe
         allow(kafka_client).to receive(:fetch).and_return([message])
         expect(handler).to receive(:call).with(value)
         consumer.start
+      end
+
+      describe 'offsets' do
+        let(:offset_store) { Hash.new }
+
+        before { consumer.offset_store = offset_store }
+
+        describe 'when handler does not raise an error' do
+          it 'increments stored offset as messages processed' do
+            messages = (0..10).to_a.map { |n| double(offset: n, value: 'a') }
+            allow(kafka_client).to receive(:fetch).and_return(messages)
+
+            consumer.start
+
+            expect(offset_store[consumer.id]).to eq messages.last.offset
+          end
+        end
+
+        describe 'when handler raises an error' do
+          let(:handler) { lambda { |m| raise('error') if m == 5 } }
+
+          it 'does not increment offset' do
+            messages = (0..10).to_a.map { |n| double(offset: n, value: n) }
+            allow(kafka_client).to receive(:fetch).and_return(messages)
+
+            consumer.start
+
+            expect(offset_store[consumer.id]).to eq 4
+          end
+        end
+
+        describe 'when offset given' do
+          let(:offset) { 10 }
+
+          it 'starts from given offset' do
+            pending
+            # need to inject client class, not object
+          end
+        end
       end
 
       it 'writes a started message to the log' do

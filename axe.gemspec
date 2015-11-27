@@ -22,4 +22,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'poseidon'
   spec.add_dependency 'snappy'
+  spec.add_dependency 'retries'
 end

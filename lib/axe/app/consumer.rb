@@ -1,10 +1,12 @@
 require 'poseidon'
+require "retries"
 require_relative 'memory_offset_store'
 
 module Axe
   class App
     class Consumer
       attr_reader :id, :handler, :topic, :env, :logger, :delay, :offset
+      attr_reader :exception_handler
 
       Stopped  = :stopped
       Started  = :started
@@ -18,6 +20,7 @@ module Axe
         @logger  = options.fetch(:logger)
         @delay   = options.fetch(:delay, 0.5)
         @offset  = options.fetch(:offset, next_offset)
+        @exception_handler = options.fetch(:exception_handler)
         @status  = Stopped
       end
 
@@ -25,18 +28,23 @@ module Axe
         log "Started"
         @status = Started
 
+
         while !stopping?
           messages = kafka_client.fetch
 
           log "#{messages.size} messages in batch"
           log "offset #{messages.first.offset}..#{messages.last.offset}" unless messages.empty?
 
+
           messages.each do |message|
             @offset = message.offset
 
             begin
-              handler.call(message.value)
-            rescue
+              with_retries(max_tries: 3, handler: retry_handler) do
+                handler.call(message.value)
+              end
+            rescue StandardError => e
+              exception_handler.call(e.exception("handler: #{id}; offset: #{offset}; #{e.message}"))
               stop
               break
             else
@@ -55,6 +63,12 @@ module Axe
         @status = Stopped
         log "Stopped"
 
+        self
+      rescue StandardError => e
+        # move stop and status to else block
+        stop
+        @status = Stopped
+        exception_handler.call(e.exception("handler: #{id}; offset: #{offset}; #{e.message}"))
         self
       end
 
@@ -89,6 +103,12 @@ module Axe
       end
 
       private
+
+      def retry_handler
+        @retry_handler ||= Proc.new do |exception, attempt_number, total_delay|
+          log("ERROR: #{exception.class.name}: #{exception.message}; attempt: #{attempt_number}; offset: #{offset}")
+        end
+      end
 
       def fetch_offset
         offset_store[id]

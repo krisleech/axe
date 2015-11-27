@@ -6,7 +6,8 @@ module Axe
                                              offset:  offset,
                                              env:     env,
                                              logger:  logger,
-                                             delay:   delay)  }
+                                             delay:   delay,
+                                             exception_handler: exception_handler)  }
 
     let(:id)      { 'test_id' }
     let(:handler) { double.as_null_object }
@@ -15,6 +16,7 @@ module Axe
     let(:env)     { 'test' }
     let(:logger)  { double.as_null_object }
     let(:delay)   { 0 }
+    let(:exception_handler) { lambda {|_| true} }
 
     describe '#initalize' do
       it 'is stopped' do
@@ -38,6 +40,61 @@ module Axe
         allow(kafka_client).to receive(:fetch).and_return([message])
         expect(handler).to receive(:call).with(value)
         consumer.start
+      end
+
+      describe 'exception handling' do
+        describe 'when an exception occurs in the handler' do
+          let(:messages) { [double(offset: 0, value: 0)] }
+
+          before do
+            allow(kafka_client).to receive(:fetch).and_return(messages)
+            allow(handler).to receive(:call).and_raise('boom')
+          end
+
+          it 'retries 3 times' do
+            expect(handler).to receive(:call).exactly(3).times
+            consumer.start
+          end
+
+          describe 'when handler raises for a 4th time' do
+            it 'calls the exception handler' do
+              expect(exception_handler).to receive(:call).once
+              consumer.start
+            end
+
+            it 'raise an exception with message including consumer id and offset' do
+              expect(exception_handler).to receive(:call) do |ex|
+                expect(ex.message).to match(/handler: #{id}/)
+                expect(ex.message).to match(/offset: #{offset}/)
+              end
+              consumer.start
+            end
+
+            it 'stops consumer' do
+              consumer.start
+              expect(consumer.stopped?).to eq true
+            end
+          end
+        end
+
+        describe 'connection error' do
+          before do
+            allow(kafka_client).to receive(:fetch).and_raise('connection error')
+          end
+
+          it 'call exception handler' do
+            expect(exception_handler).to receive(:call) do |ex|
+              expect(ex.message).to match(/handler: #{id}/)
+              expect(ex.message).to match(/offset: #{offset}/)
+            end
+            consumer.start
+          end
+
+          it 'stops consumer' do
+            consumer.start
+            expect(consumer.stopped?).to eq true
+          end
+        end
       end
 
       describe 'offsets' do
@@ -73,7 +130,7 @@ module Axe
           let(:offset) { 10 }
 
           it 'starts from given offset' do
-            pending
+            skip
             # need to inject client class, not object
           end
         end

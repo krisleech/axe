@@ -20,11 +20,17 @@ class SystemHandler
   end
 end
 
+class OtherHandler
+  def call(payload)
+    puts "[OTH] #{Time.now.strftime('%M %S %L %N')} #{payload}"
+    raise 'some error'# if rand(2) == 1
+  end
+end
+
 require 'logger'
 logger = Logger.new('axe.log')
 
 app = Axe::App.new(logger: logger)
-
 
 # Thread needed because of https://bugs.ruby-lang.org/issues/7917
 %w(INT TERM QUIT).each do |signal|

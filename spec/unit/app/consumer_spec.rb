@@ -16,7 +16,7 @@ module Axe
     let(:env)     { 'test' }
     let(:logger)  { double.as_null_object }
     let(:delay)   { 0 }
-    let(:exception_handler) { lambda {|_| true} }
+    let(:exception_handler) { lambda {|_,_| true} }
 
     describe '#initalize' do
       it 'is stopped' do
@@ -62,11 +62,9 @@ module Axe
               consumer.start
             end
 
-            it 'raise an exception with message including consumer id and offset' do
-              expect(exception_handler).to receive(:call) do |ex|
-                expect(ex.message).to match(/handler: #{id}/)
-                expect(ex.message).to match(/offset: #{offset}/)
-              end
+            it 'raise an exception passing exception and consumer' do
+              expect(exception_handler).to receive(:call).with(kind_of(StandardError),
+                                                               kind_of(described_class))
               consumer.start
             end
 
@@ -77,16 +75,14 @@ module Axe
           end
         end
 
-        describe 'connection error' do
+        describe 'when Kafka client raises a connection error' do
           before do
             allow(kafka_client).to receive(:fetch).and_raise('connection error')
           end
 
           it 'call exception handler' do
-            expect(exception_handler).to receive(:call) do |ex|
-              expect(ex.message).to match(/handler: #{id}/)
-              expect(ex.message).to match(/offset: #{offset}/)
-            end
+            expect(exception_handler).to receive(:call).with(kind_of(StandardError),
+                                                             kind_of(described_class))
             consumer.start
           end
 

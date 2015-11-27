@@ -32,9 +32,8 @@ module Axe
         while !stopping?
           messages = kafka_client.fetch
 
-          log "#{messages.size} messages in batch"
-          log "offset #{messages.first.offset}..#{messages.last.offset}" unless messages.empty?
-
+          log("#{messages.size} messages in batch", :debug)
+          log("offset #{messages.first.offset}..#{messages.last.offset}", :debug) unless messages.empty?
 
           messages.each do |message|
             @offset = message.offset
@@ -44,9 +43,8 @@ module Axe
                 handler.call(message.value)
               end
             rescue StandardError => e
-              exception_handler.call(e.exception("handler: #{id}; offset: #{offset}; #{e.message}"))
+              handle_exception(e)
               stop
-              break
             else
               store_offset(offset)
             end
@@ -60,19 +58,17 @@ module Axe
           sleep(delay)
         end
 
+      rescue StandardError => e
+        handle_exception(e)
+        stop
+      ensure
         @status = Stopped
         log "Stopped"
-
-        self
-      rescue StandardError => e
-        # move stop and status to else block
-        stop
-        @status = Stopped
-        exception_handler.call(e.exception("handler: #{id}; offset: #{offset}; #{e.message}"))
         self
       end
 
       def stop
+        return unless started?
         log "Stopping"
         @status = Stopping
         self
@@ -104,9 +100,14 @@ module Axe
 
       private
 
+      def handle_exception(e)
+        exception_handler.call(e, self)
+      end
+
+      # called when an exception occurs but it can be retried
       def retry_handler
         @retry_handler ||= Proc.new do |exception, attempt_number, total_delay|
-          log("ERROR: #{exception.class.name}: #{exception.message}; attempt: #{attempt_number}; offset: #{offset}")
+          log("#{exception.class.name}: #{exception.message}; attempt: #{attempt_number}; offset: #{offset}", :warn)
         end
       end
 
@@ -135,7 +136,7 @@ module Axe
       end
 
       def log(message, level = :info)
-        logger.send(level, "[#{id}] [#{Process.pid}] #{message}")
+        logger.send(level, "[#{id}] #{message}")
       end
     end
   end

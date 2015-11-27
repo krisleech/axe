@@ -4,10 +4,15 @@ module Axe
   class App
     attr_reader :env, :logger, :exception_handler
 
+    Stopped = 'stopped'.freeze
+    Started = 'started'.freeze
+    Stopping = 'stopping'.freeze
+
     def initialize(options = {})
       @env    = options.fetch(:env, 'production')
       @logger = options.fetch(:logger, nil)
       @exception_handler = options.fetch(:exception_handler, default_exception_handler)
+      @status = Stopped
 
       @consumers = []
     end
@@ -28,6 +33,9 @@ module Axe
     end
 
     def start
+      return unless stopped?
+
+      @status = Started
       log "Started"
 
       @consumers.each do |c|
@@ -38,14 +46,25 @@ module Axe
 
       @consumers.size.times { Process.wait }
 
+      @status = Stopped
       log "Stopped"
       self
     end
 
     def stop
+      return unless started?
+      @status = Stopping
       log "Stopping"
       @consumers.each(&:stop)
       self
+    end
+
+    def started?
+      @status == Started
+    end
+
+    def stopped?
+      @status == Stopped
     end
 
     def test_mode!
@@ -61,7 +80,7 @@ module Axe
     end
 
     def default_exception_handler
-      lambda {|exception| log("#{exception.class.name}: #{exception.message}", :error)}
+      default_exception_handler ||= lambda { |e, consumer| consumer.send(:log, "#{e.class.name}: #{e.message}; offset: #{consumer.offset}", :error) }
     end
   end
 end

@@ -1,7 +1,3 @@
-Catch no connection to Kafka error
-
-Add exception handler - it gets handler id and exception. We should add retry with backoff.
-Once backedoff we stop the consumer.
 
 Persistant storage for offsets - MySQL
 

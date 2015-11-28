@@ -7,6 +7,8 @@ module Axe
                                              env:     env,
                                              logger:  logger,
                                              delay:   delay,
+                                             parser:  parser,
+                                             retries: retries,
                                              exception_handler: exception_handler)  }
 
     let(:id)      { 'test_id' }
@@ -16,6 +18,8 @@ module Axe
     let(:env)     { 'test' }
     let(:logger)  { double.as_null_object }
     let(:delay)   { 0 }
+    let(:parser)  { lambda { |msg| msg } }
+    let(:retries) { 1 }
     let(:exception_handler) { lambda {|_,_| true} }
 
     describe '#initalize' do
@@ -42,8 +46,22 @@ module Axe
         consumer.start
       end
 
+      describe 'parsing message' do
+        let(:messages) { [double(offset: 0, value: 'foobar')] }
+
+        before do
+          allow(kafka_client).to receive(:fetch).and_return(messages)
+        end
+
+        it 'passes message to parser' do
+          expect(parser).to receive(:call).with(messages[0].value)
+          consumer.start
+        end
+      end
+
       describe 'exception handling' do
         describe 'when an exception occurs in the handler' do
+          let(:retries)  { 3 }
           let(:messages) { [double(offset: 0, value: 0)] }
 
           before do
@@ -52,7 +70,7 @@ module Axe
           end
 
           it 'retries 3 times' do
-            expect(handler).to receive(:call).exactly(3).times
+            expect(handler).to receive(:call).exactly(retries).times
             consumer.start
           end
 

@@ -33,6 +33,12 @@ class MultiHandler
   end
 end
 
+class FooHandler
+  def call(payload)
+    puts "[FOO] #{payload.class.name} #{payload.inspect}"
+  end
+end
+
 AppRoot = Pathname(__dir__)
 
 puts AppRoot.to_s
@@ -80,6 +86,11 @@ app.register(id: 'multi',
 app.register(id: 'multi',
             topic: 'test2',
             handler: MultiHandler.new)
+
+app.register(id: 'foo',
+            topic: 'json_foo_pure2',
+            handler: FooHandler.new,
+            parser: Axe::App::JsonParser.new)
 
 app.start
 

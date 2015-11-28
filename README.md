@@ -61,9 +61,9 @@ Handlers are all run in parrell in their own processes.
 ```ruby
 app.configure do |config|
   config.logger = Logger.new(...)
-  config.exception_handler = lambda { |consumer_id, exception| ... }
-  config.exception_policy = :stop
-  config.transaction_wrapper = lambda { Sequel.transaction { yield } }
+  config.exception_handler = lambda { |exception, consumer| ... }
+  config.exception_policy = :stop # TODO
+  config.transaction_wrapper = lambda { Sequel.transaction { yield } } # TODO
 end
 ```
 
@@ -73,6 +73,8 @@ end
 app.register(id: "recruitment/study_projection",
              topic: "recruitment",
              handler: Recruitment::StudyProjection.new,
+             parser: Axe::App::JsonParser.new,
+             retries: 3,
              delay: 5)
 ```
 
@@ -81,8 +83,12 @@ app.register(id: "recruitment/study_projection",
   reusing a previously used offset will mean the handler will start from the
   offset stored for that offset.
 * `topic` is the Kafka topic
-* `handler` an object which responds to `#call(message)`
+* `handler` an object which responds to `#call(message)`.
+* `parser` is an object which responds to `#call(message)`, it will parse the
+  message before passing it to the handler.
 * `delay` the number of seconds to pause between batches of messages
+* `retries` the number of time the handler will be retried when an error
+  occurs.
 
 ## Development
 

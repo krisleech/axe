@@ -5,7 +5,8 @@ require_relative 'memory_offset_store'
 module Axe
   class App
     class Consumer
-      attr_reader :id, :handler, :topic, :env, :logger, :delay, :offset
+      attr_reader :id, :handler, :topic, :env, :logger, :delay, :offset,
+                  :retries
       attr_reader :exception_handler
 
       Stopped  = :stopped
@@ -24,6 +25,8 @@ module Axe
         @logger  = options.fetch(:logger)
         @delay   = options.fetch(:delay, 0.5)
         @offset  = options.fetch(:offset, next_offset)
+        @parser  = options.fetch(:parser, DefaultParser.new)
+        @retries = options.fetch(:retries, 3)
         @status  = Stopped
       end
 
@@ -41,8 +44,8 @@ module Axe
             @offset = message.offset
 
             begin
-              with_retries(max_tries: 3, handler: retry_handler) do
-                handler.call(message.value)
+              with_retries(max_tries: retries, handler: retry_handler) do
+                handler.call(parse_message(message.value))
               end
             rescue StandardError => e
               handle_exception(e)
@@ -156,6 +159,10 @@ module Axe
       def log_message_stats(messages)
         log("#{messages.size} messages in batch", :debug)
         log("offset #{messages.first.offset}..#{messages.last.offset}", :debug) unless messages.empty?
+      end
+
+      def parse_message(payload)
+        @parser.call(payload)
       end
     end
   end

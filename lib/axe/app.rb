@@ -1,5 +1,7 @@
 require_relative 'app/consumer'
 require_relative 'app/file_offset_store'
+require_relative 'app/json_parser'
+require_relative 'app/default_parser'
 
 module Axe
   class App
@@ -23,6 +25,7 @@ module Axe
       @consumers << Consumer.new(id:      options.fetch(:id),
                                  handler: options.fetch(:handler),
                                  topic:   options.fetch(:topic),
+                                 parser:  options.fetch(:parser, DefaultParser.new),
                                  env:     env,
                                  logger:  logger,
                                  exception_handler: exception_handler,

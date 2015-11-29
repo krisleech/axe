@@ -1,19 +1,23 @@
+TODO
 
 how can one handler get multiple topics. Instance per topic sharing a local database?
+- 1. register two instancesi of same handler, one per topic, but they share a local database.
+- 2. allow multiple topics to be specified when registering, fetch from both topics (half the total number of bytes)
+     and interlace the two streams.
 
-Something to convert a Ruby hash in to a Avro schema
+Something to convert a Ruby hash in to a Avro schema? More producer end.
 
-Persistant storage for offsets - MySQL
+Persistant storage for offsets - MySQL - maybe using MySQL2 gem or Sequel gem.
 
 Ability to configure a block to wrap handler.call and store_offset (allowing them to  be
-in a transaction).
+in a transaction), e.g. config.wrapper = lambda { Sequel.transaction { yield } }
 
-handle Poseidon::Errors::OffsetOutOfRange when fetching messages
-
+handle Poseidon::Errors::OffsetOutOfRange when fetching messages - how can this happend and how to handle
+- proberbly need to stop consumer and report error, which is what happens now.
 
 consumer include which gives them local state
-consumer include which gives them access to publish events to Kafka
 
+consumer include which gives them access to publish events to Kafka
 
 How to reset offset for a consumer?
 - split app.rb in to env.rb and start.rb so you can load the app without starting and thus
@@ -21,28 +25,13 @@ get access to the consumers via Irb. Also need to have a Consumers collection cl
 
 app.consumers['an_id'].offset = 0
 
-
 Poseidon::Errors::UnknownTopicOrPartition can occur if the topic does not exist
 or the topic is correct but it has not been auto-created because no messages
-have been published to the topic yet.
-
-
+have been published to the topic yet. This error should not stop consumer but issue
+a warning (and a single error) and continue to try and fetch messages.
 
 testing? method in consumer could be replaced with a after_hook which is a block
-instance eval'd. The tests can have the block call stop.
+instance eval'd. The tests can have the block call stop. `run_after_batch_hook`.
 
-trap exceptions in handlers
-pool of consumers
-supervisor for consumers which will restart them.
-exception handler
-stress test
-store offset after message sent to handler
-allow to surround handler + offset update in a configurable block,
-this allows user to surround both in a transaction (around_filter).
-
-configurable offset updater, in app config and per consumer.
-
-  # actor crashes if the topic does not already exist.
-  # rescue Poseidon error or restart
-
-spawn timer to report current offsets every X seconds.
+Any way to get stats from consumers (in forked processes) on an ongoing basis?
+- maybe using pipe between parent and child processes.

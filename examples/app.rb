@@ -39,6 +39,12 @@ class FooHandler
   end
 end
 
+class AvroHandler
+  def call(payload)
+    puts "[AVRO] #{payload.class.name} #{payload.inspect}"
+  end
+end
+
 AppRoot = Pathname(__dir__)
 
 puts AppRoot.to_s
@@ -90,7 +96,13 @@ app.register(id: 'multi',
 app.register(id: 'foo',
             topic: 'json_foo_pure2',
             handler: FooHandler.new,
-            parser: Axe::App::JsonParser.new)
+            parser: Axe::App::JSONParser.new)
+
+app.register(id: 'avro',
+            topic: 'avro_test',
+            handler: AvroHandler.new,
+            parser: Axe::App::AvroParser.new)
+
 
 app.start
 

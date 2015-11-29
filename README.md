@@ -49,8 +49,9 @@ Each Handler is mapped to a topic.
 
 The application will maintain the offset in the topic between restarts.
 
-Handlers will receive messages in the correct. This means if an exception
-occurs the handlers will be stopped.
+Handlers will receive messages in the correct order. This means if an exception
+occurs the handlers will be stopped so the error can be fixed before further
+events are consumed.
 
 Handlers are all run in parrell in their own processes.
 
@@ -64,6 +65,7 @@ app.configure do |config|
   config.exception_handler = lambda { |exception, consumer| ... }
   config.exception_policy = :stop # TODO
   config.transaction_wrapper = lambda { Sequel.transaction { yield } } # TODO
+  config.default_parser = Axe::App::JSONParser.new
 end
 ```
 
@@ -85,7 +87,8 @@ app.register(id: "recruitment/study_projection",
 * `topic` is the Kafka topic
 * `handler` an object which responds to `#call(message)`.
 * `parser` is an object which responds to `#call(message)`, it will parse the
-  message before passing it to the handler.
+  message before passing it to the handler. Included handlers are `JSON`,
+  `Avro` and `Default`. The default parser just returns the payload unchanged.
 * `delay` the number of seconds to pause between batches of messages
 * `retries` the number of time the handler will be retried when an error
   occurs.
@@ -98,7 +101,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/axe. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome on GitHub at https://github.com/krisleech/axe. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](contributor-covenant.org) code of conduct.
 
 
 ## License

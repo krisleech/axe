@@ -74,6 +74,7 @@ app.register(id:      "recruitment/study_projection",
              topic:   "recruitment",
              handler: Recruitment::StudyProjection.new,
              parser:  Axe::App::JsonParser.new,
+             logger:  Logger.new(...),
              retries: 3,
              delay:   5)
 ```
@@ -87,6 +88,8 @@ app.register(id:      "recruitment/study_projection",
 * `parser` is an object which responds to `#call(message)`, it will parse the
   message before passing it to the handler. Included handlers are `JSON`,
   `Avro` and `Default`. The default parser just returns the payload unchanged.
+* `logger` is the logger for this handler, if not specified the default
+  application logger is used.
 * `delay` the number of seconds to pause between batches of messages
 * `retries` the number of time the handler will be retried when an error
   occurs.

@@ -1,9 +1,7 @@
 require_relative 'app/consumer'
-require_relative 'app/file_offset_store'
-require_relative 'app/json_parser'
-require_relative 'app/avro_parser'
-require_relative 'app/default_parser'
-require_relative 'app/runnable'
+require_relative 'app/offset_stores/all'
+require_relative 'app/parsers/all'
+require_relative 'shared/runnable'
 
 module Axe
   class App

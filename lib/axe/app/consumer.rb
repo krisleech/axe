@@ -1,7 +1,7 @@
 require 'poseidon'
 require "retries"
-require_relative 'memory_offset_store'
-require_relative 'runnable'
+require_relative 'offset_stores/memory_offset_store'
+require_relative '../shared/runnable'
 
 module Axe
   class App

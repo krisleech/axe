@@ -33,9 +33,9 @@ module Axe
 
     # sets a new status and logs change
     #
-    def status(new_status)
+    def status(new_status, message = '')
       @status = new_status
-      log @status.to_s.capitalize
+      log "#{@status.to_s.capitalize} #{message}"
     end
   end
 end

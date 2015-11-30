@@ -31,7 +31,7 @@ module Axe
       # starts the consumer
       #
       def start
-        status(Started)
+        status(Started, "from offset #{offset}")
 
         while started?
           begin
@@ -119,9 +119,7 @@ module Axe
       end
 
       def next_offset
-        ((fetch_offset || -1) + 1).tap do |offset|
-          log("Resuming from offset: #{offset}")
-        end
+        (fetch_offset || -1) + 1
       end
 
       def testing?

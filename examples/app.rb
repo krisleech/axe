@@ -70,6 +70,10 @@ app.register(id: 'broken',
             topic: 'basic_test',
             handler: BrokenHandler.new('BROKEN'))
 
+app.register(id: 'no_topic',
+            topic: 'does_not_exist',
+            handler: BasicHandler.new('BASIC'))
+
 app.register(id: 'json_test',
             topic: 'json_test_1',
             handler: BasicHandler.new('JSON'),

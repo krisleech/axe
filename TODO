@@ -1,5 +1,9 @@
 TODO
 
+I think we get an Poseidon::Errors::OffsetOutOfRange error when we read all messages, then
+restart the app. It asks for the next offset (last processed + 1), but it does not exist yet.
+This error 
+
 how can one handler get multiple topics. Instance per topic sharing a local database?
 - 1. register two instancesi of same handler, one per topic, but they share a local database.
 - 2. allow multiple topics to be specified when registering, fetch from both topics (half the total number of bytes)
@@ -29,6 +33,8 @@ Poseidon::Errors::UnknownTopicOrPartition can occur if the topic does not exist
 or the topic is correct but it has not been auto-created because no messages
 have been published to the topic yet. This error should not stop consumer but issue
 a warning (and a single error) and continue to try and fetch messages.
+
+Need a way for app to restart consumers which have been stopped. This could be done with a signal.
 
 testing? method in consumer could be replaced with a after_hook which is a block
 instance eval'd. The tests can have the block call stop. `run_after_batch_hook`.

@@ -1,0 +1,15 @@
+source 'https://rubygems.org'
+
+gem "bundler", "~> 1.10"
+
+gem 'axe', path: '../'
+
+# producers
+gem 'poseidon'
+gem 'avro'
+
+# development
+gem 'pry'
+gem 'pry-byebug', platform: 'mri'
+gem 'rerun'
+gem 'rb-fsevent' # macos

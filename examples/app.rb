@@ -5,49 +5,39 @@ Bundler.setup
 require 'axe'
 require 'pry'
 
+class Handler
+  def initialize(label)
+    @label = label
+  end
 
-# event handlers must implement #call(payload)
-class TestHandler
+  private
+
+  def log(msg)
+    puts "[#{@label}] #{msg}"
+  end
+end
+
+class BasicHandler < Handler
   def call(payload)
-    puts "[TEST] #{payload}"
+    log "#{payload.class.name} #{payload}"
+  end
+end
+
+class SlowHandler < BasicHandler
+  def call(payload)
+    super(payload)
     sleep(5) # this will not hold up other handlers
   end
 end
 
-class SystemHandler
+class BrokenHandler < BasicHandler
   def call(payload)
-    puts "[SYS] #{payload}"
-  end
-end
-
-class OtherHandler
-  def call(payload)
-    puts "[OTH] #{payload}"
-    raise 'some error'# if rand(2) == 1
-  end
-end
-
-class MultiHandler
-  def call(payload)
-    puts "[MULTI] #{payload}"
-  end
-end
-
-class FooHandler
-  def call(payload)
-    puts "[FOO] #{payload.class.name} #{payload.inspect}"
-  end
-end
-
-class AvroHandler
-  def call(payload)
-    puts "[AVRO] #{payload.class.name} #{payload.inspect}"
+    super(payload)
+    raise 'some error'
   end
 end
 
 AppRoot = Pathname(__dir__)
-
-puts AppRoot.to_s
 
 # create directories
 %w(log db).each do |dir|
@@ -63,44 +53,31 @@ logger = Logger.new(AppRoot.join('log', 'axe.log').to_s)
 app = Axe::App.new(logger: logger,
                    offset_store: Axe::App::FileOffsetStore.new(path: AppRoot.join('db')))
 
+puts "Press enter to continue..."
+gets
+
 # Graceful shutdown
 # Thread needed because of https://bugs.ruby-lang.org/issues/7917
 %w(INT TERM QUIT).each do |signal|
   Signal.trap(signal) { Thread.new { app.stop } }
 end
 
-# Signal.trap('USR1') do
-#   puts "#{app.status}"
-# end
+app.register(id: 'basic_test',
+            topic: 'basic_test',
+            handler: BasicHandler.new('BASIC'))
 
-app.register(id: 'kris',
-            topic: 'test',
-            handler: TestHandler.new)
+app.register(id: 'broken',
+            topic: 'basic_test',
+            handler: BrokenHandler.new('BROKEN'))
 
-app.register(id: 'sys',
-            topic: 'test2',
-            handler: SystemHandler.new)
-
-app.register(id: 'other',
-            topic: 'test2',
-            handler: OtherHandler.new)
-
-app.register(id: 'multi',
-            topic: 'test',
-            handler: MultiHandler.new)
-
-app.register(id: 'multi',
-            topic: 'test2',
-            handler: MultiHandler.new)
-
-app.register(id: 'foo',
-            topic: 'json_foo_pure2',
-            handler: FooHandler.new,
+app.register(id: 'json_test',
+            topic: 'json_test_1',
+            handler: BasicHandler.new('JSON'),
             parser: Axe::App::JSONParser.new)
 
-app.register(id: 'avro',
-            topic: 'avro_test',
-            handler: AvroHandler.new,
+app.register(id: 'avro_test',
+            topic: 'avro_test_1',
+            handler: BasicHandler.new('AVRO'),
             parser: Axe::App::AvroParser.new)
 
 

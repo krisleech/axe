@@ -137,7 +137,9 @@ module Axe
       end
 
       def next_offset
-        (fetch_offset || -1) + 1
+        ((fetch_offset || -1) + 1).tap do |offset|
+          log("Resuming from offset: #{offset}")
+        end
       end
 
       def testing?

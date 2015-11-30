@@ -109,6 +109,28 @@ module Axe
             expect(consumer.stopped?).to eq true
           end
         end
+
+        describe 'when Kafaka client raise Poseidon::Errors::UnknownTopicOrPartition' do
+          before do
+            allow(kafka_client).to receive(:fetch).and_raise(Poseidon::Errors::UnknownTopicOrPartition)
+          end
+
+          let(:topic) { 'does not exist' }
+
+          it 'logs the exception' do
+            expect(logger).to receive(:warn).with(/Poseidon::Errors::UnknownTopicOrPartition/)
+            Thread.new { consumer.start }
+            sleep(1)
+            consumer.stop
+          end
+
+          it 'tries to fetch messages again' do
+            expect(kafka_client).to receive(:fetch).at_least(:twice)
+            Thread.new { consumer.start }
+            sleep(2)
+            consumer.stop
+          end
+        end
       end
 
       describe 'offsets' do

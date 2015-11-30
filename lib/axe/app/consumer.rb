@@ -34,7 +34,14 @@ module Axe
         status(Started)
 
         while started?
-          messages = kafka_client.fetch
+          begin
+            messages = kafka_client.fetch
+          rescue Poseidon::Errors::UnknownTopicOrPartition => e
+            log "#{e.class.name}: #{e.message}. Will try again in 1 second.", :warn
+            sleep(1)
+            break if stopping?
+            redo
+          end
 
           log_message_stats(messages)
 

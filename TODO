@@ -1,8 +1,7 @@
 TODO
 
-I think we get an Poseidon::Errors::OffsetOutOfRange error when we read all messages, then
-restart the app. It asks for the next offset (last processed + 1), but it does not exist yet.
-This error 
+Any way to get stats from consumers (in forked processes) on an ongoing basis?
+- maybe using pipe between parent and child processes.
 
 how can one handler get multiple topics. Instance per topic sharing a local database?
 - 1. register two instancesi of same handler, one per topic, but they share a local database.
@@ -18,6 +17,9 @@ in a transaction), e.g. config.wrapper = lambda { Sequel.transaction { yield } }
 
 handle Poseidon::Errors::OffsetOutOfRange when fetching messages - how can this happend and how to handle
 - proberbly need to stop consumer and report error, which is what happens now.
+I think we get an Poseidon::Errors::OffsetOutOfRange error when we read all messages, then
+restart the app. It asks for the next offset (last processed + 1), but it does not exist yet.
+This error 
 
 consumer include which gives them local state
 
@@ -29,15 +31,8 @@ get access to the consumers via Irb. Also need to have a Consumers collection cl
 
 app.consumers['an_id'].offset = 0
 
-Poseidon::Errors::UnknownTopicOrPartition can occur if the topic does not exist
-or the topic is correct but it has not been auto-created because no messages
-have been published to the topic yet. This error should not stop consumer but issue
-a warning (and a single error) and continue to try and fetch messages.
-
 Need a way for app to restart consumers which have been stopped. This could be done with a signal.
 
 testing? method in consumer could be replaced with a after_hook which is a block
 instance eval'd. The tests can have the block call stop. `run_after_batch_hook`.
 
-Any way to get stats from consumers (in forked processes) on an ongoing basis?
-- maybe using pipe between parent and child processes.

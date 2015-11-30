@@ -24,4 +24,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'snappy'
   spec.add_dependency 'retries'
   spec.add_dependency 'avro'
+  spec.add_dependency 'sequel'
 end

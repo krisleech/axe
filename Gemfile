@@ -9,5 +9,8 @@ gem "rspec"
 gem 'pry'
 gem 'pry-byebug', platform: 'mri'
 
+# offset stores
+gem 'sqlite3'
+
 gem 'rerun'
 gem 'rb-fsevent' # macos

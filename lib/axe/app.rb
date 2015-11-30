@@ -9,6 +9,8 @@ module Axe
 
     prepend Runnable
 
+    DuplicateConsumerId = Class.new(StandardError)
+
     def initialize(options = {})
       @env       = options.fetch(:env, 'production')
       @logger    = options.fetch(:logger, nil)
@@ -18,6 +20,8 @@ module Axe
     end
 
     def register(options = {})
+      validate_options(options)
+
       @consumers << Consumer.new(id:      options.fetch(:id),
                                  handler: options.fetch(:handler),
                                  topic:   options.fetch(:topic),
@@ -64,6 +68,11 @@ module Axe
     end
 
     private
+
+    def validate_options(options)
+      id = options.fetch(:id)
+      raise(DuplicateConsumerId, "Consumer with id #{id} has already been registered") if @consumers.map(&:id).include?(id)
+    end
 
     def log(message, level = :info)
       return unless logger

@@ -22,6 +22,20 @@ module Axe
         expect(consumer.handler).to eq handler
         expect(consumer.topic).to eq topic
       end
+
+      it 'raises when id already registered' do
+        app = described_class.new
+
+        app.register(id: 'test_id',
+                     handler: Object.new,
+                     topic: 'anything')
+
+        expect do
+          app.register(id: 'test_id',
+                       handler: Object.new,
+                       topic: 'anything')
+        end.to raise_error(Axe::App::DuplicateConsumerId)
+      end
     end
 
     describe '#start' do

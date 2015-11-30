@@ -6,19 +6,19 @@ module Axe
         raise "path does exist: #{@path}" unless Dir.exists?(@path)
       end
 
-      # obtain a read lock
       def [](id)
-        File.open(filename(id), 'r') do |f|
-          f.read.to_i
+        File.open(filename(id), File::RDWR) do |file|
+          file.flock(File::LOCK_EX)
+          file.read.to_i
         end
       rescue Errno::ENOENT
         nil
       end
 
       def []=(id, value)
-        File.open(filename(id), File::RDWR|File::CREAT, 0644) do |f|
-          f.flock(File::LOCK_NB|File::LOCK_EX)
-          f.write(value.to_s + "\n")
+        File.open(filename(id), File::RDWR|File::CREAT, 0644) do |file|
+          file.flock(File::LOCK_NB|File::LOCK_EX)
+          file.write(value.to_s + "\n")
         end
       end
 

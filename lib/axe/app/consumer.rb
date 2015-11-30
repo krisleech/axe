@@ -1,6 +1,7 @@
 require 'poseidon'
 require "retries"
 require_relative 'memory_offset_store'
+require_relative 'runnable'
 
 module Axe
   class App
@@ -9,9 +10,7 @@ module Axe
                   :retries
       attr_reader :exception_handler
 
-      Stopped  = :stopped
-      Started  = :started
-      Stopping = :stopping
+      prepend Runnable
 
       # initialize a new consumer
       #
@@ -27,7 +26,6 @@ module Axe
         @offset  = options.fetch(:offset, next_offset)
         @parser  = options.fetch(:parser, DefaultParser.new)
         @retries = options.fetch(:retries, 3)
-        @status  = Stopped
       end
 
       # starts the consumer
@@ -80,24 +78,6 @@ module Axe
         self
       end
 
-      # Returns true when consumer has been started
-      #
-      def started?
-        @status == Started
-      end
-
-      # Returns true when the consumer is in the process of stopping
-      #
-      def stopping?
-        @status == Stopping
-      end
-
-      # Returns true when the consumer is stopped
-      #
-      def stopped?
-        @status == Stopped
-      end
-
       # dependency injection
       #
       def kafka_client=(new_client)
@@ -111,11 +91,6 @@ module Axe
       end
 
       private
-
-      def status(new_status)
-        @status = new_status
-        log @status.to_s.capitalize
-      end
 
       def handle_exception(e)
         exception_handler.call(e, self)
@@ -155,6 +130,7 @@ module Axe
       end
 
       def log(message, level = :info)
+        return unless logger
         logger.send(level, "[#{id}] [#{topic}] #{message}")
       end
 

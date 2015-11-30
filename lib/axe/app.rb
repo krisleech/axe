@@ -3,23 +3,20 @@ require_relative 'app/file_offset_store'
 require_relative 'app/json_parser'
 require_relative 'app/avro_parser'
 require_relative 'app/default_parser'
+require_relative 'app/runnable'
 
 module Axe
   class App
     attr_reader :env, :logger, :exception_handler, :offset_store
 
-    Stopped = 'stopped'.freeze
-    Started = 'started'.freeze
-    Stopping = 'stopping'.freeze
+    prepend Runnable
 
     def initialize(options = {})
-      @env    = options.fetch(:env, 'production')
-      @logger = options.fetch(:logger, nil)
+      @env       = options.fetch(:env, 'production')
+      @logger    = options.fetch(:logger, nil)
+      @consumers = []
       @exception_handler = options.fetch(:exception_handler, default_exception_handler)
       @offset_store      = options.fetch(:offset_store, nil)
-      @status = Stopped
-
-      @consumers = []
     end
 
     def register(options = {})
@@ -42,8 +39,7 @@ module Axe
     def start
       return unless stopped?
 
-      @status = Started
-      log "Started"
+      status(Started)
 
       @consumers.each do |c|
         fork do
@@ -53,25 +49,15 @@ module Axe
 
       @consumers.size.times { Process.wait }
 
-      @status = Stopped
-      log "Stopped"
+      status(Stopped)
       self
     end
 
     def stop
       return unless started?
-      @status = Stopping
-      log "Stopping"
+      status(Stopping)
       @consumers.each(&:stop)
       self
-    end
-
-    def started?
-      @status == Started
-    end
-
-    def stopped?
-      @status == Stopped
     end
 
     def test_mode!

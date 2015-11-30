@@ -47,14 +47,23 @@ AppRoot = Pathname(__dir__)
   Dir.mkdir(dir)
 end
 
+demonize = ARGV.include?('-d')
+
+if demonize
+  puts "pid: #{Process.pid}"
+  Process.daemon
+end
+
 require 'logger'
 logger = Logger.new(AppRoot.join('log', 'axe.log').to_s)
 
 app = Axe::App.new(logger: logger,
                    offset_store: Axe::App::FileOffsetStore.new(path: AppRoot.join('db')))
 
-puts "Press enter to continue..."
-gets
+unless demonize
+  puts "Press enter to continue..."
+  gets
+end
 
 # Graceful shutdown
 # Thread needed because of https://bugs.ruby-lang.org/issues/7917

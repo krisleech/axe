@@ -9,18 +9,20 @@ module Axe
                                              delay:   delay,
                                              parser:  parser,
                                              retries: retries,
-                                             exception_handler: exception_handler)  }
+                                             exception_handler: exception_handler,
+                                             from_parent: from_parent)  }
 
     let(:id)      { 'test_id' }
-    let(:handler) { double.as_null_object }
+    let(:handler) { double('handler').as_null_object }
     let(:topic)   { 'test_topic' }
     let(:offset)  { 0 }
     let(:env)     { 'test' }
-    let(:logger)  { double.as_null_object }
+    let(:logger)  { double('logger').as_null_object }
     let(:delay)   { 0 }
     let(:parser)  { lambda { |msg| msg } }
     let(:retries) { 1 }
     let(:exception_handler) { lambda {|_,_| true} }
+    let(:from_parent) { double('from_parent', gets: nil) }
 
     describe '#initalize' do
       it 'is stopped' do
@@ -29,7 +31,7 @@ module Axe
     end
 
     describe '#start' do
-      let(:kafka_client) { double(fetch: []) }
+      let(:kafka_client) { double('kafka_client', fetch: []) }
 
       before { consumer.kafka_client = kafka_client }
 
@@ -40,14 +42,14 @@ module Axe
 
       it 'calls handler with each message' do
         value = 'hello, world'
-        message = double(offset: 1, value: value)
+        message = double('message', offset: 1, value: value)
         allow(kafka_client).to receive(:fetch).and_return([message])
         expect(handler).to receive(:call).with(value)
         consumer.start
       end
 
       describe 'parsing message' do
-        let(:messages) { [double(offset: 0, value: 'foobar')] }
+        let(:messages) { [double('message', offset: 0, value: 'foobar')] }
 
         before do
           allow(kafka_client).to receive(:fetch).and_return(messages)
@@ -62,7 +64,7 @@ module Axe
       describe 'exception handling' do
         describe 'when an exception occurs in the handler' do
           let(:retries)  { 3 }
-          let(:messages) { [double(offset: 0, value: 0)] }
+          let(:messages) { [double('message', offset: 0, value: 0)] }
 
           before do
             allow(kafka_client).to receive(:fetch).and_return(messages)
@@ -140,7 +142,7 @@ module Axe
 
         describe 'when handler does not raise an error' do
           it 'increments stored offset as messages processed' do
-            messages = (0..10).to_a.map { |n| double(offset: n, value: 'a') }
+            messages = (0..10).to_a.map { |n| double('message', offset: n, value: 'a') }
             allow(kafka_client).to receive(:fetch).and_return(messages)
 
             consumer.start
@@ -153,7 +155,7 @@ module Axe
           let(:handler) { lambda { |m| raise('error') if m == 5 } }
 
           it 'does not increment offset' do
-            messages = (0..10).to_a.map { |n| double(offset: n, value: n) }
+            messages = (0..10).to_a.map { |n| double('message', offset: n, value: n) }
             allow(kafka_client).to receive(:fetch).and_return(messages)
 
             consumer.start
@@ -176,25 +178,18 @@ module Axe
         expect(logger).to receive(:info).with(/Started/)
         consumer.start
       end
-
-      it 'handles unknown topic' # Poseidon::Errors::UnknownTopicOrPartition
     end
 
     describe '#stop' do
       let(:handler) { lambda { |_| sleep(0.5) } }
 
       it 'stops message processing' do
-        consumer.kafka_client = double(fetch: Array.new(100) { |n| double(offset: n, value: 'a') })
+        consumer.kafka_client = double('kafka_client', fetch: Array.new(100) { |n| double(offset: n, value: 'a') })
 
-
-        # does not work on MRI
-        t = Thread.new do
-          consumer.start
-        end
+        Thread.new { consumer.start }
 
         sleep(1)
         consumer.stop
-        sleep(3)
 
         expect(consumer.offset).to be < 4
       end

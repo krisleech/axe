@@ -47,10 +47,12 @@ AppRoot = Pathname(__dir__)
   Dir.mkdir(dir)
 end
 
+parent_pid = Process.pid
+
 demonize = ARGV.include?('-d')
 
 if demonize
-  puts "pid: #{Process.pid}"
+  puts "demonizing pid: #{parent_pid}"
   Process.daemon
 end
 
@@ -60,15 +62,14 @@ logger = Logger.new(AppRoot.join('log', 'axe.log').to_s)
 app = Axe::App.new(logger: logger,
                    offset_store: Axe::App::FileOffsetStore.new(path: AppRoot.join('db')))
 
-unless demonize
-  puts "Press enter to continue..."
-  gets
-end
-
 # Graceful shutdown
 # Thread needed because of https://bugs.ruby-lang.org/issues/7917
 %w(INT TERM QUIT).each do |signal|
-  Signal.trap(signal) { Thread.new { app.stop } }
+  Signal.trap(signal) do
+    if parent_pid == Process.pid
+      Thread.new { app.stop }
+    end
+  end
 end
 
 app.register(id: 'basic_test',

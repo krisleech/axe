@@ -26,6 +26,7 @@ module Axe
         @offset  = options.fetch(:offset, next_offset)
         @parser  = options.fetch(:parser, DefaultParser.new)
         @retries = options.fetch(:retries, 3)
+        @from_parent = options.fetch(:from_parent)
       end
 
       # starts the consumer
@@ -34,6 +35,8 @@ module Axe
         status(Started, "from offset #{offset}")
 
         while started?
+          read_parent_messages
+
           begin
             messages = kafka_client.fetch
           rescue Poseidon::Errors::UnknownTopicOrPartition => e
@@ -98,6 +101,18 @@ module Axe
       end
 
       private
+
+      def read_parent_messages
+        Timeout::timeout(0.5) do
+          msg = @from_parent.gets
+          if msg
+            log "Message received from parent #{msg}", :debug
+            stop
+          end
+        end
+      rescue Timeout::Error
+        # no-op
+      end
 
       def handle_exception(e)
         exception_handler.call(e, self)

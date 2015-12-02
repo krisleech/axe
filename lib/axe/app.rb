@@ -3,6 +3,12 @@ require_relative 'app/offset_stores/all'
 require_relative 'app/parsers/all'
 require_relative 'shared/runnable'
 
+# Application
+#
+# * Registration of handlers to topics (Consumer)
+# * Preforking of processes, one per consumer
+# * Communication between parent and child process via Pipes
+
 module Axe
   class App
     attr_reader :env, :logger, :exception_handler, :offset_store
@@ -17,10 +23,15 @@ module Axe
       @consumers = []
       @exception_handler = options.fetch(:exception_handler, default_exception_handler)
       @offset_store      = options.fetch(:offset_store, nil)
+      @pipes = {}
     end
 
     def register(options = {})
       validate_options(options)
+
+      from_parent, to_child = IO.pipe
+
+      @pipes[options.fetch(:id)] = { to_child: to_child }
 
       @consumers << Consumer.new(id:      options.fetch(:id),
                                  handler: options.fetch(:handler),
@@ -29,7 +40,8 @@ module Axe
                                  env:     env,
                                  logger:  logger,
                                  exception_handler: exception_handler,
-                                 offset_store:      offset_store)
+                                 offset_store:      offset_store,
+                                 from_parent: from_parent)
 
       self
     end
@@ -58,7 +70,7 @@ module Axe
     def stop
       return unless started?
       status(Stopping)
-      @consumers.each(&:stop)
+      send_to_all_forks('stop')
       self
     end
 
@@ -68,6 +80,16 @@ module Axe
     end
 
     private
+
+    # Sends a message via a pipe to all child processes
+    #
+    def send_to_all_forks(message)
+      log "Sending #{message} to all children", :debug
+      @pipes.each do |id, pipes|
+        log "Sending #{message} to #{id}", :debug
+        pipes[:to_child].puts "Stop"
+      end
+    end
 
     def validate_options(options)
       id = options.fetch(:id)

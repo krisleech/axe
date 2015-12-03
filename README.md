@@ -2,11 +2,14 @@
 
 A small framework for routing a stream of events to parallelized consumers.
 
-* deseriazation of event payload
-* consumer offset management
+* pluggable deseriazation of event payload (inc. JSON and AVRO)
+* plugable payload compression / encryption
+* pluggable consumer offset management
 * consumer local state
-* consumer publishing new streams
+* consumer stream publishing
 * stats for each stream and consumer
+* process per handler for memory isolation
+* preforking for reduced memory consumption
 
 ## Setup
 
@@ -52,6 +55,16 @@ occurs the handlers will be stopped so the error can be fixed before further
 events are consumed.
 
 Handlers are all run in parrell in their own processes.
+
+## Starting and stopping
+
+When you start the app the process name will be changed to `axe [master]`. To
+stop the app gracefully you can either Ctrl+C if the process is not demonized
+or send a TERM signal. This will ensure that any message currently being
+processed are allowed to finish.
+
+Failure to gracefully shutdown could result in a handlers getting their last
+message again.
 
 ## Usage
 

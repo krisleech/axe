@@ -60,11 +60,6 @@ logger = Logger.new(AppRoot.join('log', 'axe.log').to_s)
 app = Axe::App.new(logger: logger,
                    offset_store: Axe::App::FileOffsetStore.new(path: AppRoot.join('db')))
 
-unless demonize
-  puts "Press enter to continue..."
-  gets
-end
-
 # Graceful shutdown
 # Thread needed because of https://bugs.ruby-lang.org/issues/7917
 %w(INT TERM QUIT).each do |signal|

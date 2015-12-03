@@ -24,6 +24,7 @@ module Axe
       @exception_handler = options.fetch(:exception_handler, default_exception_handler)
       @offset_store      = options.fetch(:offset_store, nil)
       @pipes = {}
+      set_procname("axe [master]")
     end
 
     def register(options = {})
@@ -57,6 +58,7 @@ module Axe
 
       @consumers.each do |c|
         fork do
+          set_procname("axe [#{c.id}]")
           c.start
         end
       end
@@ -89,6 +91,9 @@ module Axe
         log "Sending #{message} to #{id}", :debug
         pipes[:to_child].puts "Stop"
       end
+
+    def set_procname(name)
+      Process.setproctitle(name)
     end
 
     def validate_options(options)

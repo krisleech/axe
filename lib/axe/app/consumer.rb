@@ -6,8 +6,7 @@ require_relative '../shared/runnable'
 module Axe
   class App
     class Consumer
-      attr_reader :id, :handler, :topic, :env, :logger, :delay, :offset,
-                  :retries
+      attr_reader :id, :handler, :topic, :env, :logger, :delay, :offset, :retries
       attr_reader :exception_handler
 
       prepend Runnable
@@ -17,6 +16,7 @@ module Axe
       def initialize(options)
         @offset_store      = options.fetch(:offset_store, nil)
         @exception_handler = options.fetch(:exception_handler)
+        @from_parent       = options.fetch(:from_parent)
         @id      = options.fetch(:id)
         @handler = options.fetch(:handler)
         @topic   = options.fetch(:topic)
@@ -26,7 +26,6 @@ module Axe
         @offset  = options.fetch(:offset, next_offset)
         @parser  = options.fetch(:parser, DefaultParser.new)
         @retries = options.fetch(:retries, 3)
-        @from_parent = options.fetch(:from_parent)
       end
 
       # starts the consumer
@@ -35,48 +34,26 @@ module Axe
         status(Started, "from offset #{offset}")
 
         while started?
-          begin
-            messages = kafka_client.fetch
-          rescue Poseidon::Errors::UnknownTopicOrPartition => e
-            log "Unknown Topic: #{topic}. Will try again in 1 second.", :warn
-            sleep(1)
+          new_messages.each do |message|
+            @offset = message.offset
+            process_message(message)
             perform_parent_commands
             break if stopping?
-            redo
           end
-
-          log_message_stats(messages)
-
-          messages.each do |message|
-            @offset = message.offset
-
-            begin
-              with_retries(max_tries: retries, handler: retry_handler) do
-                handler.call(parse_message(message.value))
-              end
-            rescue StandardError => e
-              handle_exception(e)
-              stop
-            else
-              store_offset(offset)
-            end
-
-            break if stopping?
-          end
-
-          break if stopping? || testing?
 
           perform_parent_commands
+          break if stopping? || testing?
 
           log "Sleeping for #{delay} seconds"
           sleep(delay)
+          break if stopping?
         end
 
       rescue StandardError => e
         handle_exception(e)
         stop
       ensure
-        status(Stopped)
+        status(Stopped, "at offset #{offset}")
         self
       end
 
@@ -103,14 +80,42 @@ module Axe
 
       private
 
+      # processes a message using the handler and update the offset
+      #
+      def process_message(message)
+        with_retries(max_tries: retries, handler: retry_handler) do
+          handler.call(parse_message(message.value))
+        end
+      rescue StandardError => e
+        handle_exception(e)
+        stop
+      else
+        store_offset(offset)
+      end
+
+      # retrive new messages from Kafka
+      #
+      def new_messages
+        kafka_client.fetch.tap do |messages|
+          log_message_stats(messages)
+        end
+      rescue Poseidon::Errors::UnknownTopicOrPartition
+        log "Unknown Topic: #{topic}. Trying again in 1 second.", :warn
+        sleep(1)
+        perform_parent_commands
+        return [] if stopping?
+        retry
+      end
+
       # reads messages from parent process and maps them to commands
       #
       def perform_parent_commands
         Timeout::timeout(0.5) do
           message = @from_parent.gets
           return if message.nil?
+          message.chomp!
           log "Message received from parent #{message.inspect}", :debug
-          case message.chomp
+          case message
           when 'stop'
             stop
           else

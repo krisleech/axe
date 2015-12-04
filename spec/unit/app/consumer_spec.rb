@@ -21,7 +21,7 @@ module Axe
     let(:delay)   { 0 }
     let(:parser)  { lambda { |msg| msg } }
     let(:retries) { 1 }
-    let(:exception_handler) { lambda {|_,_| true} }
+    let(:exception_handler) { lambda {|e,_| puts(e.message)} }
     let(:from_parent) { double('from_parent', gets: nil) }
 
     describe '#initalize' do
@@ -120,9 +120,9 @@ module Axe
           let(:topic) { 'does not exist' }
 
           it 'logs the exception' do
-            expect(logger).to receive(:warn).with(/Poseidon::Errors::UnknownTopicOrPartition/)
+            expect(logger).to receive(:warn).with(/Unknown Topic: #{topic}/).at_least(:once)
             Thread.new { consumer.start }
-            sleep(1)
+            sleep(2)
             consumer.stop
           end
 

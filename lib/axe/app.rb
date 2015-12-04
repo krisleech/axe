@@ -72,7 +72,7 @@ module Axe
     def stop
       return unless started?
       status(Stopping)
-      send_to_all_forks('stop')
+      send_to_children('stop')
       self
     end
 
@@ -81,16 +81,21 @@ module Axe
       self
     end
 
+    def testing?
+      @env == 'test'
+    end
+
     private
 
-    # Sends a message via a pipe to all child processes
+    # Send a message to all child processes
     #
-    def send_to_all_forks(message)
+    def send_to_children(message)
       log "Sending #{message} to all children", :debug
+
       @pipes.each do |id, pipes|
-        log "Sending #{message} to #{id}", :debug
-        pipes[:to_child].puts "Stop"
+        pipes[:to_child].puts message
       end
+    end
 
     def set_procname(name)
       Process.setproctitle(name)

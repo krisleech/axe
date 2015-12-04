@@ -35,13 +35,12 @@ module Axe
         status(Started, "from offset #{offset}")
 
         while started?
-          read_parent_messages
-
           begin
             messages = kafka_client.fetch
           rescue Poseidon::Errors::UnknownTopicOrPartition => e
-            log "#{e.class.name}: #{e.message}. Will try again in 1 second.", :warn
+            log "Unknown Topic: #{topic}. Will try again in 1 second.", :warn
             sleep(1)
+            perform_parent_commands
             break if stopping?
             redo
           end
@@ -66,6 +65,8 @@ module Axe
           end
 
           break if stopping? || testing?
+
+          perform_parent_commands
 
           log "Sleeping for #{delay} seconds"
           sleep(delay)
@@ -102,14 +103,21 @@ module Axe
 
       private
 
-      def read_parent_messages
+      # reads messages from parent process and maps them to commands
+      #
+      def perform_parent_commands
         Timeout::timeout(0.5) do
-          msg = @from_parent.gets
-          if msg
-            log "Message received from parent #{msg}", :debug
+          message = @from_parent.gets
+          return if message.nil?
+          log "Message received from parent #{message.inspect}", :debug
+          case message.chomp
+          when 'stop'
             stop
+          else
+            raise "Unknown Message from parent process: #{message}"
           end
         end
+        self
       rescue Timeout::Error
         # no-op
       end

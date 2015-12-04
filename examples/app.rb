@@ -47,10 +47,12 @@ AppRoot = Pathname(__dir__)
   Dir.mkdir(dir)
 end
 
+parent_pid = Process.pid
+
 demonize = ARGV.include?('-d')
 
 if demonize
-  puts "pid: #{Process.pid}"
+  puts "demonizing pid: #{parent_pid}"
   Process.daemon
 end
 
@@ -63,7 +65,11 @@ app = Axe::App.new(logger: logger,
 # Graceful shutdown
 # Thread needed because of https://bugs.ruby-lang.org/issues/7917
 %w(INT TERM QUIT).each do |signal|
-  Signal.trap(signal) { Thread.new { app.stop } }
+  Signal.trap(signal) do
+    if parent_pid == Process.pid
+      Thread.new { app.stop }
+    end
+  end
 end
 
 app.register(id: 'basic_test',

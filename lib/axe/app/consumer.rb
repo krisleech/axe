@@ -26,6 +26,7 @@ module Axe
         @offset  = options.fetch(:offset, next_offset)
         @parser  = options.fetch(:parser, DefaultParser.new)
         @retries = options.fetch(:retries, 3)
+        @from_parent = options.fetch(:from_parent)
       end
 
       # starts the consumer
@@ -37,8 +38,9 @@ module Axe
           begin
             messages = kafka_client.fetch
           rescue Poseidon::Errors::UnknownTopicOrPartition => e
-            log "#{e.class.name}: #{e.message}. Will try again in 1 second.", :warn
+            log "Unknown Topic: #{topic}. Will try again in 1 second.", :warn
             sleep(1)
+            perform_parent_commands
             break if stopping?
             redo
           end
@@ -63,6 +65,8 @@ module Axe
           end
 
           break if stopping? || testing?
+
+          perform_parent_commands
 
           log "Sleeping for #{delay} seconds"
           sleep(delay)
@@ -98,6 +102,25 @@ module Axe
       end
 
       private
+
+      # reads messages from parent process and maps them to commands
+      #
+      def perform_parent_commands
+        Timeout::timeout(0.5) do
+          message = @from_parent.gets
+          return if message.nil?
+          log "Message received from parent #{message.inspect}", :debug
+          case message.chomp
+          when 'stop'
+            stop
+          else
+            raise "Unknown Message from parent process: #{message}"
+          end
+        end
+        self
+      rescue Timeout::Error
+        # no-op
+      end
 
       def handle_exception(e)
         exception_handler.call(e, self)

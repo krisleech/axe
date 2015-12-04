@@ -60,6 +60,7 @@ module Axe
         fork do
           set_procname("axe [#{c.id}]")
           c.start
+          exit!(true)
         end
       end
 

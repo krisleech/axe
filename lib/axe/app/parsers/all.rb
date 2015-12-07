@@ -1,3 +1,5 @@
 require_relative 'json_parser'
 require_relative 'avro_parser'
+require_relative 'gzip_parser'
+require_relative 'snappy_parser'
 require_relative 'default_parser'

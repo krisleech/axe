@@ -24,7 +24,7 @@ module Axe
         @logger  = options.fetch(:logger)
         @delay   = options.fetch(:delay, 0.5)
         @offset  = options.fetch(:offset, next_offset)
-        @parser  = options.fetch(:parser, DefaultParser.new)
+        @parsers = Array(options.fetch(:parser, DefaultParser.new))
         @retries = options.fetch(:retries, 3)
       end
 
@@ -172,8 +172,14 @@ module Axe
         log("offset #{messages.first.offset}..#{messages.last.offset}", :debug) unless messages.empty?
       end
 
+      # passes payload through a chain of parsers
+      #
+      # @param payload <String>
+      #
       def parse_message(payload)
-        @parser.call(payload)
+        @parsers.inject(payload) do |memo, parser|
+          parser.call(memo)
+        end
       end
     end
   end

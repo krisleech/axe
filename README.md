@@ -99,13 +99,28 @@ app.register(id:      "recruitment/study_projection",
 * `topic` is the Kafka topic
 * `handler` an object which responds to `#call(message)`.
 * `parser` is an object which responds to `#call(message)`, it will parse the
-  message before passing it to the handler. Included handlers are `JSON`,
-  `Avro` and `Default`. The default parser just returns the payload unchanged.
+  message before passing it to the handler.
+    Included handlers are:
+    * `JSON`
+    * `Avro`
+    * `Gzip`
+    * `Snappy`
+    * `Default` (no parsing)
 * `logger` is the logger for this handler, if not specified the default
   application logger is used.
 * `delay` the number of seconds to pause between batches of messages
 * `retries` the number of time the handler will be retried when an error
   occurs.
+
+If you need to use multiple parsers, e.g. for decompression, you can pass
+an array of parsers:
+
+```ruby
+app.register(...,
+             parser:  [Axe::App::GzipParser.new, Axe::App::JsonParser.new])
+```
+
+The same technique can be used for decryption too.
 
 ## Development
 

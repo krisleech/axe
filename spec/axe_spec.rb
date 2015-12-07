@@ -14,13 +14,9 @@ describe Axe do
     end
 
     def call(message)
-      file.write(message)
-    end
-
-    private
-
-    def file
-      @file ||= File.open(@filename, 'a')
+      File.open(@filename, 'a') do |file|
+        file.write(message)
+      end
     end
   end
 

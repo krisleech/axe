@@ -59,6 +59,19 @@ module Axe
           expect(parser).to receive(:call).with(messages[0].value)
           consumer.start
         end
+
+        describe 'given an array of parsers' do
+          let(:parser) { [parser_1, parser_2] }
+          let(:parser_1) { double }
+          let(:parser_2) { double }
+
+          it 'chains parsers together' do
+            different_value = 'different value'
+            expect(parser_1).to receive(:call).with(messages[0].value).and_return(different_value)
+            expect(parser_2).to receive(:call).with(different_value)
+            consumer.start
+          end
+        end
       end
 
       describe 'exception handling' do

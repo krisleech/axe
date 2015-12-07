@@ -95,8 +95,8 @@ app.register(id:      "recruitment/study_projection",
 * `id` is an identifier, it is what the offsets are keyed on. Therefore
   changing it will mean the handler will get events from offset 0. Likewise
   reusing a previously used offset will mean the handler will start from the
-  offset stored for that offset.
-* `topic` is the Kafka topic
+  offset stored for that id.
+* `topic` is the Kafka topic.
 * `handler` an object which responds to `#call(message)`.
 * `parser` is an object which responds to `#call(message)`, it will parse the
   message before passing it to the handler.
@@ -109,7 +109,7 @@ app.register(id:      "recruitment/study_projection",
 * `logger` is the logger for this handler, if not specified the default
   application logger is used.
 * `delay` the number of seconds to pause between batches of messages
-* `retries` the number of time the handler will be retried when an error
+* `retries` the number of times the handler will be retried when an error
   occurs.
 
 If you need to use multiple parsers, e.g. for decompression, you can pass

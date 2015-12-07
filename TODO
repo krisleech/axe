@@ -1,29 +1,8 @@
 TODO
 
-Any way to get stats from consumers (in forked processes) on an ongoing basis?
-- maybe using pipe between parent and child processes.
-
-how can one handler get multiple topics. Instance per topic sharing a local database?
-- 1. register two instancesi of same handler, one per topic, but they share a local database.
-- 2. allow multiple topics to be specified when registering, fetch from both topics (half the total number of bytes)
-     and interlace the two streams.
-
-Something to convert a Ruby hash in to a Avro schema? More producer end.
-
-Persistant storage for offsets - MySQL - maybe using MySQL2 gem or Sequel gem.
-
-Ability to configure a block to wrap handler.call and store_offset (allowing them to  be
-in a transaction), e.g. config.wrapper = lambda { Sequel.transaction { yield } }
-
-handle Poseidon::Errors::OffsetOutOfRange when fetching messages - how can this happend and how to handle
-- proberbly need to stop consumer and report error, which is what happens now.
-I think we get an Poseidon::Errors::OffsetOutOfRange error when we read all messages, then
-restart the app. It asks for the next offset (last processed + 1), but it does not exist yet.
-This error 
-
-consumer include which gives them local state
-
-consumer include which gives them access to publish events to Kafka
+How can one handler get multiple topics. Instance per topic sharing a local database?
+Register two instances of same handler class, one per topic, but they share a local database.
+How does handler know which of the two topics a message is from, does it need to know the topic as well as the payload?
 
 How to reset offset for a consumer?
 - split app.rb in to env.rb and start.rb so you can load the app without starting and thus
@@ -33,6 +12,26 @@ app.consumers['an_id'].offset = 0
 
 Need a way for app to restart consumers which have been stopped. This could be done with a signal.
 
+Refactors:
+
 testing? method in consumer could be replaced with a after_hook which is a block
 instance eval'd. The tests can have the block call stop. `run_after_batch_hook`.
 
+Lower priority:
+
+consumer include which gives them local state
+
+consumer include which gives them access to publish events to Kafka
+
+Persistant storage for offsets - MySQL - maybe using MySQL2 gem or Sequel gem.
+
+Ability to configure a block to wrap handler.call and store_offset (allowing them to  be
+in a transaction), e.g. config.wrapper = lambda { Sequel.transaction { yield } }
+
+Something to convert a Ruby hash in to a Avro schema? More producer end.
+
+New project - wrapper around Axe to make building an app easier.
+
+Pull demonization in to App
+
+Have app store its pid in a file

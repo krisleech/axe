@@ -6,7 +6,13 @@ describe Axe do
     expect(Axe::VERSION).not_to be nil
   end
 
-  # handler writes messages to given file
+  # Handler writes messages to given file
+  #
+  # Since we handlers are forked and executed in a different process we cannot
+  # access their state from the parent process.
+  #
+  # Instead we use the file system as a globally accessable storage.
+  #
   class Handler
     def initialize(filename)
       @filename = filename
@@ -27,7 +33,7 @@ describe Axe do
 
     topics = [1,2,3,4,5].map do |num|
       id = SecureRandom.uuid
-      filename =  "/tmp/#{id}.axe.test"
+      filename =  File.join(Dir.tmpdir, "#{id}.axe.test")
       {
         id: id,
         name: "axe_test_#{num}",

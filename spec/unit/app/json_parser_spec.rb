@@ -14,7 +14,7 @@ module Axe
       describe 'given invalid JSON' do
         it 'raises an error' do
           json = 'not json'
-          expect { subject.call(json) }.to raise_error
+          expect { subject.call(json) }.to raise_error(JSON::ParserError)
         end
       end
     end

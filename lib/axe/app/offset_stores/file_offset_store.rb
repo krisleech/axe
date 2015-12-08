@@ -16,6 +16,7 @@ module Axe
       end
 
       def []=(id, value)
+        raise ArgumentError, "given offset is not a number: #{value.class.name}" unless value.is_a?(Integer)
         File.open(filename(id), File::RDWR|File::CREAT, 0644) do |file|
           file.flock(File::LOCK_NB|File::LOCK_EX)
           file.write(value.to_s + "\n")
@@ -25,7 +26,13 @@ module Axe
       private
 
       def filename(id)
-        File.join(@path, id.to_s + '.offset')
+        File.join(@path, sanatize_filename(id) + '.offset')
+      end
+
+      # replace characters which cannot be in a filename
+      #
+      def sanatize_filename(id)
+        id.to_s.gsub(/[^0-9A-Za-z.\-]/, '_')
       end
     end
   end

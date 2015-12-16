@@ -11,7 +11,7 @@ require_relative 'shared/runnable'
 
 module Axe
   class App
-    attr_reader :env, :logger, :exception_handler, :offset_store
+    attr_reader :env, :logger, :exception_handler, :offset_store, :host, :port
 
     prepend Runnable
 
@@ -20,10 +20,12 @@ module Axe
     def initialize(options = {})
       @env       = options.fetch(:env, 'production')
       @logger    = options.fetch(:logger, nil)
+      @host      = options.fetch(:host, 'localhost')
+      @port      = options.fetch(:port, 9092)
       @consumers = []
+      @pipes     = {}
       @exception_handler = options.fetch(:exception_handler, default_exception_handler)
       @offset_store      = options.fetch(:offset_store, nil)
-      @pipes = {}
       set_procname("axe [master]")
     end
 
@@ -38,6 +40,8 @@ module Axe
                                  handler: options.fetch(:handler),
                                  topic:   options.fetch(:topic),
                                  parser:  options.fetch(:parser, DefaultParser.new),
+                                 host:    host,
+                                 port:    port,
                                  env:     env,
                                  logger:  logger,
                                  exception_handler: exception_handler,
@@ -54,7 +58,7 @@ module Axe
     def start
       return unless stopped?
 
-      status(Started)
+      status(Started, "in #{env}")
 
       @consumers.each do |c|
         fork do

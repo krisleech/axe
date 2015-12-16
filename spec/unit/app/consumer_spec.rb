@@ -8,6 +8,8 @@ module Axe
                                              logger:  logger,
                                              delay:   delay,
                                              parser:  parser,
+                                             host:    host,
+                                             port:    port,
                                              retries: retries,
                                              exception_handler: exception_handler,
                                              from_parent: from_parent)  }
@@ -20,6 +22,8 @@ module Axe
     let(:logger)  { double('logger').as_null_object }
     let(:delay)   { 0 }
     let(:parser)  { lambda { |msg| msg } }
+    let(:host)    { 'localhost' }
+    let(:port)    { 9092 }
     let(:retries) { 1 }
     let(:exception_handler) { lambda {|e,_| puts(e.message)} }
     let(:from_parent) { double('from_parent', gets: nil) }
@@ -208,7 +212,7 @@ module Axe
       end
     end
 
-    %w(id handler topic env logger delay).each do |method|
+    %w(id handler topic env logger delay host port).each do |method|
       describe "##{method}" do
         it "returns configured #{method}" do
           expect(consumer.send(method)).to eq(send(method))

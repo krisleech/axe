@@ -1,10 +1,7 @@
 require 'spec_helper'
 
 
-describe Axe do
-  it 'has a version number' do
-    expect(Axe::VERSION).not_to be nil
-  end
+describe Axe, type: 'acceptance' do
 
   # Handler writes messages to given file
   #

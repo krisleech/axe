@@ -59,7 +59,9 @@ end
 require 'logger'
 logger = Logger.new(AppRoot.join('log', 'axe.log').to_s)
 
-app = Axe::App.new(logger: logger,
+app = Axe::App.new(host: ENV.fetch('KAFKA_HOST', 'localhost'),
+                   port: ENV.fetch('KAFKA_PORT', 9092),
+                   logger: logger,
                    offset_store: Axe::App::FileOffsetStore.new(path: AppRoot.join('db')))
 
 # Graceful shutdown

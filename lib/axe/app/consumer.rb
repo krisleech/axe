@@ -6,8 +6,8 @@ require_relative '../shared/runnable'
 module Axe
   class App
     class Consumer
-      attr_reader :id, :handler, :topic, :env, :logger, :delay, :offset, :retries
-      attr_reader :exception_handler
+      attr_reader :id, :handler, :topic, :env, :logger, :delay, :offset,
+                  :retries, :exception_handler, :host, :port
 
       prepend Runnable
 
@@ -26,6 +26,8 @@ module Axe
         @offset  = options.fetch(:offset, next_offset)
         @parsers = Array(options.fetch(:parser, DefaultParser.new))
         @retries = options.fetch(:retries, 3)
+        @host    = options.fetch(:host, 'localhost')
+        @port    = options.fetch(:port, 9092)
       end
 
       # starts the consumer
@@ -46,6 +48,8 @@ module Axe
 
           log "Sleeping for #{delay} seconds"
           sleep(delay)
+
+          perform_parent_commands
           break if stopping?
         end
 
@@ -155,7 +159,7 @@ module Axe
       end
 
       def kafka_client
-        @kafka_client ||= Poseidon::PartitionConsumer.new(id, "localhost", 9092, topic, 0, offset)
+        @kafka_client ||= Poseidon::PartitionConsumer.new(id, host, port, topic, 0, offset)
       end
 
       def offset_store

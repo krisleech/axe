@@ -9,12 +9,10 @@ module Axe
         end
       end
 
-
-
       describe 'given invalid Avro' do
         it 'raises an error' do
           json = 'not json'
-          expect { subject.call(json) }.to raise_error
+          expect { subject.call(json) }.to raise_error(Avro::DataFile::DataFileError)
         end
       end
     end

@@ -109,6 +109,12 @@ module Axe
         perform_parent_commands
         return [] if stopping?
         retry
+      rescue Poseidon::Connection::ConnectionFailedError
+        log "Can not connect to Kafka at #{host}:#{port}. Trying again in 1 second.", :warn
+        sleep(1)
+        perform_parent_commands
+        return [] if stopping?
+        retry
       end
 
       # reads messages from parent process and maps them to commands

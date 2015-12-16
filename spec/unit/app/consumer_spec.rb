@@ -150,6 +150,26 @@ module Axe
             consumer.stop
           end
         end
+
+        describe 'when Kafaka client raises Poseidon::Connection::ConnectionFailedError' do
+          before do
+            allow(kafka_client).to receive(:fetch).and_raise(Poseidon::Connection::ConnectionFailedError)
+          end
+
+          it 'logs the exception' do
+            expect(logger).to receive(:warn).with(/Can not connect to Kafka/).at_least(:once)
+            Thread.new { consumer.start }
+            sleep(2)
+            consumer.stop
+          end
+
+          it 'tries to fetch messages again' do
+            expect(kafka_client).to receive(:fetch).at_least(:twice)
+            Thread.new { consumer.start }
+            sleep(2)
+            consumer.stop
+          end
+        end
       end
 
       describe 'offsets' do

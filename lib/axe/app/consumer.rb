@@ -35,22 +35,19 @@ module Axe
       def start
         status(Started, "from offset #{offset}")
 
-        while started?
+        start_ipc
+
+        while started? do
           new_messages.each do |message|
             @offset = message.offset
             process_message(message)
-            perform_parent_commands
             break if stopping?
           end
 
-          perform_parent_commands
           break if stopping? || testing?
 
           log "Sleeping for #{delay} seconds"
           sleep(delay)
-
-          perform_parent_commands
-          break if stopping?
         end
 
       rescue StandardError => e
@@ -84,7 +81,8 @@ module Axe
 
       private
 
-      # processes a message using the handler and update the offset
+      # processes a message using the handler
+      # updates the offset if no exception occurs
       #
       def process_message(message)
         with_retries(max_tries: retries, handler: retry_handler) do
@@ -95,6 +93,7 @@ module Axe
         stop
       else
         store_offset(offset)
+        self
       end
 
       # retrive new messages from Kafka
@@ -106,35 +105,44 @@ module Axe
       rescue Poseidon::Errors::UnknownTopicOrPartition
         log "Unknown Topic: #{topic}. Trying again in 1 second.", :warn
         sleep(1)
-        perform_parent_commands
         return [] if stopping?
         retry
       rescue Poseidon::Connection::ConnectionFailedError
         log "Can not connect to Kafka at #{host}:#{port}. Trying again in 1 second.", :warn
         sleep(1)
-        perform_parent_commands
         return [] if stopping?
         retry
       end
 
-      # reads messages from parent process and maps them to commands
+      # Starts Inter-process Communication
+      # Threaded so the main thread is not blocked
+      # Commands are received on a read pipe
       #
-      def perform_parent_commands
-        Timeout::timeout(0.5) do
-          message = @from_parent.gets
-          return if message.nil?
-          message.chomp!
-          log "Message received from parent #{message.inspect}", :debug
-          case message
-          when 'stop'
-            stop
-          else
-            raise "Unknown Message from parent process: #{message}"
+      def start_ipc
+        Thread.new do
+          log "IPC started", :debug
+          while started? do
+            command = @from_parent.gets # blocking
+            next if command.nil?
+            command.chomp!
+            log "Command received from parent #{command.inspect}", :debug
+            handle_command(command)
           end
+          log "IPC stopped", :debug
         end
         self
-      rescue Timeout::Error
-        # no-op
+      end
+
+      # handle an external command
+      #
+      def handle_command(command)
+        case command
+        when 'stop'
+          stop
+        else
+          raise "Unknown command received: #{command}"
+        end
+        self
       end
 
       def handle_exception(e)

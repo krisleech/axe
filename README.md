@@ -1,82 +1,53 @@
 # Axe (Alpha)
 
-A small framework for routing Kafka topics to parallelized consumers, i.e.
-stream processing.
+A small stream processing framework for routing Kafka topics to parallelized Ruby objects.
 
 * pluggable deseriazation of message payload (inc. JSON and AVRO)
 * plugable payload compression / encryption (inc. GZIP and Snappy)
 * pluggable consumer offset management (inc. memory and disk)
-* consumer local state
-* consumer stream publishing
-* stats for each stream and consumer
 * process per handler for memory isolation
 * preforking for reduced memory consumption
 
-## Setup
+## Usage
 
-Currently Axe has no application template.
+### Handlers
 
-A minimal app, with one handler, might look like this:
+A handler is an object which responds to `#call(message)` or a lambda.
 
 ```ruby
-require 'bundler'
-Bundler.setup
-
-require 'axe'
-
 class MyHandler
   def call(message)
     puts message
   end
 end
-
-logger = Logger.new('logs/axe.log')
-logger.level = Logger::WARN
-
-app = Axe::App.new(logger: logger)
-
-app.register(id:      "my_test_consumer",
-             topic:   "test",
-             handler: MyHandler.new)
-
-app.start
 ```
 
-Each Handler is mapped to a Kafka topic, in this case the `test` topic.
+Each handler can be mapped to one Kafka topic. Messages are received in time
+order.
 
-Handlers will receive messages in time order. If an exception
-occurs the handler will be stopped and the error reported so it can be fixed before further
+If an exception occurs the handler will be stopped and the error reported so it can be fixed before further
 messages are consumed.
 
 Each Handler is run in its own preforked process.
 
-Run the application:
-
-```
-ruby app.rb
-```
-
-There is a fuller example in [examples/app.rb](https://github.com/krisleech/axe/tree/master/examples).
-
-## Usage
-
-### Configuration
+### Configure an Application
 
 ```ruby
 app = Axe::App.new(logger: Logger.new(...),
                    exception_handler: lambda { |exception, consumer| ... })
 ```
 
-* `logger` a Logger instance
-* `exception_handler` - a callable object which is called when an exception occurs. This is typically used to generate a notification. There is no need to re-raise the error as the handler will be stopped so the exception can be fixed before proceeding.
+* `logger` - a [Logger](http://ruby-doc.org/stdlib-2.2.3/libdoc/logger/rdoc/Logger.html) instance
+* `exception_handler` - any callable object. This is typically used to generate a notification. There is no need to re-raise the error as the handler will be stopped so the exception can be fixed before proceeding.
 
+Also see: [examples/app.rb](https://github.com/krisleech/axe/tree/master/examples).
 
-### Registering consumers
+### Registering Handlers
 
 ```ruby
-app.register(id:      "recruitment/study_projection",
-             topic:   "recruitment",
-             handler: Recruitment::StudyProjection.new,
+app.register(id:      "my_handler",
+             topic:   "test",
+             handler: MyHandler.new,
              parser:  Axe::App::JsonParser.new,
              logger:  Logger.new(...),
              retries: 3,
@@ -113,31 +84,32 @@ app.register(...,
 
 The same technique can be used for decryption too.
 
-### Starting
+### Starting the Application
 
 ```ruby
 app.start
 ```
 
-This will block until a TERM signal is received. If all handlers are stopped, e.g. due to exceptions, then the application will stop.
+This will block until stopped. If all handlers are stopped, e.g. due to exceptions, then the application will stop.
 
 Axe does not handler demonization, pid files, restart etc. You can either use Ruby to do this or use something like initd.
 
 If a connection to Kafka can not be established Axe will keep retrying until it becomes available.
 
-Usually topics do not exist until the first message is published to them. If a topic does not exist Axe will print a warning to the log file and continue to keep trying until the topic is created.
+Often topics are auto-created when the first message is published. If a topic does not exist Axe will print a warning to the log file and continue to keep trying until the topic is created.
 
 The application process name will be `axe [master]`. Each child process with be named by its id, e.g. `axe [my_handler]`.
 
-### Stopping
+### Stopping the Application
 
 To stop the app gracefully send a TERM signal, e.g. Ctrl-C if the process is not demonized, to the master process.
 
-This will ensure that any messages currently being
-processed are allowed to finish.
+This will ensure that any messages currently being processed are allowed to finish.
 
 Failure to gracefully shutdown could result in a handlers getting their last
 message for a second time.
+
+There is no need to send signals to the child processes.
 
 ## Development
 
@@ -183,7 +155,7 @@ for further examples.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/krisleech/axe. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome on GitHub at [https://github.com/krisleech/axe](https://github.com/krisleech/axe). This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](contributor-covenant.org) code of conduct.
 
 ## Releasing
 
@@ -192,4 +164,3 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
-

@@ -6,30 +6,63 @@ module Axe
         raise "path does exist: #{@path}" unless Dir.exists?(@path)
       end
 
+      # returns offset for given id
+      #
+      # checks in-memory cache first, then disk cache, if no hit found then nil
+      # is returned
+      #
+      # @return <Integer, nil>
+      #
       def [](id)
-        File.open(filename(id), File::RDWR) do |file|
-          file.flock(File::LOCK_EX)
-          file.read.to_i
-        end
-      rescue Errno::ENOENT
-        nil
+        cache[:offsets][id] ||= begin
+                                  begin
+                                    File.open(filename(id), File::RDWR) do |file|
+                                      file.flock(File::LOCK_EX)
+                                      file.read.to_i
+                                    end
+                                  rescue Errno::ENOENT
+                                    nil
+                                  end
+                                end
       end
 
+      # sets offset for given id
+      #
+      # @return <self>
+      #
       def []=(id, value)
         raise ArgumentError, "given offset is not a number: #{value.class.name}" unless value.is_a?(Integer)
         File.open(filename(id), File::RDWR|File::CREAT, 0644) do |file|
           file.flock(File::LOCK_NB|File::LOCK_EX)
           file.write(value.to_s + "\n")
         end
+
+        cache[:offsets][id] = value
+        self
       end
 
       private
 
-      def filename(id)
-        File.join(@path, sanatize_filename(id) + '.offset')
+      # An in-memory namepsaced cache for key/value pairs
+      #
+      # @example
+      #   cache[:namespace][:key] = value
+      #
+      def cache
+        @cache ||= Hash.new { |h,k| h[k] = {} }
       end
 
-      # replace characters which cannot be in a filename
+      # returns a filename for the given id
+      #
+      # @return <String>
+      #
+      def filename(id)
+        cache[:filenames][id] ||= File.join(@path, sanatize_filename(id) + '.offset')
+      end
+
+      # replaces characters which cannot be in a filename
+      #
+      # @return <String>
       #
       def sanatize_filename(id)
         id.to_s.gsub(/[^0-9A-Za-z.\-]/, '_')

@@ -30,14 +30,14 @@ module Axe
       #
       # @return <self>
       #
-      def []=(id, value)
-        raise ArgumentError, "given offset is not a number: #{value.class.name}" unless value.is_a?(Integer)
+      def []=(id, offset)
+        raise ArgumentError, "given offset is not a number: #{offset.class.name}" unless offset.is_a?(Integer)
         File.open(filename(id), File::RDWR|File::CREAT, 0644) do |file|
           file.flock(File::LOCK_NB|File::LOCK_EX)
-          file.write(value.to_s + "\n")
+          file.write(offset.to_s + "\n")
         end
 
-        cache[:offsets][id] = value
+        cache[:offsets][id] = offset
         self
       end
 
